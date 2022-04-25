@@ -5,6 +5,8 @@ import numpy as np
 from utils import *
 from torch.utils.data import DataLoader
 from solver import Solver
+from solver_text import Solver_Text
+from solver_fusion import Solver_Fusion
 from config import get_args, get_config, output_dim_dict, criterion_dict
 from data_loader import get_loader
 
@@ -22,12 +24,12 @@ def set_seed(seed):
 if __name__ == '__main__':
     args = get_args()
     dataset = str.lower(args.dataset.strip())
-    
+
     set_seed(args.seed)
     print("Start loading the data....")
-    train_config = get_config(dataset, mode='train', batch_size=args.batch_size)
-    valid_config = get_config(dataset, mode='valid', batch_size=args.batch_size)
-    test_config = get_config(dataset, mode='test',  batch_size=args.batch_size)
+    train_config = get_config(dataset, mode='train', batch_size=args.batch_size, bert_model=args.bert_model)
+    valid_config = get_config(dataset, mode='valid', batch_size=args.batch_size, bert_model=args.bert_model)
+    test_config = get_config(dataset, mode='test',  batch_size=args.batch_size, bert_model=args.bert_model)
 
     # pretrained_emb saved in train_config here
     train_loader = get_loader(args, train_config, shuffle=True)
@@ -50,6 +52,16 @@ if __name__ == '__main__':
     args.n_class = output_dim_dict.get(dataset, 1)
     args.criterion = criterion_dict.get(dataset, 'MSELoss')
 
-    solver = Solver(args, train_loader=train_loader, dev_loader=valid_loader,
+    if args.fusion == 'none':
+        # MMIM
+        solver = Solver(args, train_loader=train_loader, dev_loader=valid_loader,
+                    test_loader=test_loader, is_train=True)
+    elif args.fusion == 'text':
+        # bert
+        solver = Solver_Text(args, train_loader=train_loader, dev_loader=valid_loader,
+                    test_loader=test_loader, is_train=True)
+    elif args.fusion == 'early' or args.fusion == 'late':
+        # early fusion or late fusion
+        solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
     solver.train_and_eval()

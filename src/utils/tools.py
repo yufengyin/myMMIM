@@ -12,7 +12,7 @@ def save_load_name(args, name=''):
     return name + '_' + args.model
 
 
-def save_model(args, model, name=''):
+def save_model(args, model):
     # name = save_load_name(args, name)
     name = 'best_model'
     if not os.path.exists('pre_trained_models'):

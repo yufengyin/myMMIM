@@ -1,22 +1,26 @@
-import torch
-from torch import nn
 import sys
-import torch.optim as optim
-import numpy as np
 import time
+import copy
+import numpy as np
+
+import torch
+import torch.optim as optim
 import torch.nn.functional as F
+
+from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import accuracy_score, f1_score
+
 from utils.eval_metrics import *
 from utils.tools import *
 from model import MMIM
 
 class Solver(object):
-    def __init__(self, hyp_params, train_loader, dev_loader, test_loader, is_train=True, model=None, pretrained_emb=None):
+    def __init__(self, hyp_params, train_loader, dev_loader, test_loader, is_train=True):
         self.hp = hp = hyp_params
         self.epoch_i = 0
         self.train_loader = train_loader
@@ -24,7 +28,6 @@ class Solver(object):
         self.test_loader = test_loader
 
         self.is_train = is_train
-        self.model = model
 
         # Training hyperarams
         self.alpha = hp.alpha
@@ -33,8 +36,7 @@ class Solver(object):
         self.update_batch = hp.update_batch
 
         # initialize the model
-        if model is None:
-            self.model = model = MMIM(hp)
+        self.model = model = MMIM(hp)
         
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -46,7 +48,8 @@ class Solver(object):
         if self.hp.dataset == "ur_funny":
             self.criterion = criterion = nn.CrossEntropyLoss(reduction="mean")
         else: # mosi and mosei are regression datasets
-            self.criterion = criterion = nn.L1Loss(reduction="mean")
+            #self.criterion = criterion = nn.L1Loss(reduction="mean")
+            self.criterion = criterion = nn.MSELoss(reduction="mean")
         
         # optimizer
         self.optimizer={}
@@ -57,7 +60,6 @@ class Solver(object):
             bert_param = []
 
             for name, p in model.named_parameters():
-                # print(name)
                 if p.requires_grad:
                     if 'bert' in name:
                         bert_param.append(p)
@@ -238,11 +240,6 @@ class Solver(object):
                         text, audio, vision, y = text.cuda(), audio.cuda(), vision.cuda(), y.cuda()
                         lengths = lengths.cuda()
                         bert_sent, bert_sent_type, bert_sent_mask = bert_sent.cuda(), bert_sent_type.cuda(), bert_sent_mask.cuda()
-                        if self.hp.dataset == 'iemocap':
-                            y = y.long()
-                    
-                        if self.hp.dataset == 'ur_funny':
-                            y = y.squeeze()
 
                     batch_size = lengths.size(0) # bert_sent in size (bs, seq_len, emb_size)
 
@@ -268,6 +265,7 @@ class Solver(object):
         best_mae = 1e8
         patience = self.hp.patience
 
+        best_model = copy.deepcopy(model)
         for epoch in range(1, self.hp.num_epochs+1):
             start = time.time()
 
@@ -296,24 +294,18 @@ class Solver(object):
                 # update best validation
                 patience = self.hp.patience
                 best_valid = val_loss
-                # for ur_funny we don't care about
-                if self.hp.dataset == "ur_funny":
-                    eval_humor(results, truths, True)
-                elif test_loss < best_mae:
-                    best_epoch = epoch
-                    best_mae = test_loss
-                    if self.hp.dataset in ["mosei_senti", "mosei"]:
-                        eval_mosei_senti(results, truths, True)
+                best_epoch = epoch
 
-                    elif self.hp.dataset == 'mosi':
-                        eval_mosi(results, truths, True)
-                    elif self.hp.dataset == 'iemocap':
-                        eval_iemocap(results, truths)
-                    
-                    best_results = results
-                    best_truths = truths
-                    print(f"Saved model at pre_trained_models/MM.pt!")
-                    save_model(self.hp, model)
+                if self.hp.dataset in ["mosei_senti", "mosei"]:
+                    eval_mosei_senti(results, truths, True)
+                elif self.hp.dataset == 'mosi':
+                    eval_mosi(results, truths, True)
+
+                best_results = results
+                best_truths = truths
+                best_model = copy.deepcopy(model)
+                print(f"Saved model at pre_trained_models")
+                save_model(self.hp, model)
             else:
                 patience -= 1
                 if patience == 0:
@@ -324,6 +316,5 @@ class Solver(object):
             eval_mosei_senti(best_results, best_truths, True)
         elif self.hp.dataset == 'mosi':
             self.best_dict = eval_mosi(best_results, best_truths, True)
-        elif self.hp.dataset == 'iemocap':
-            eval_iemocap(results, truths)       
+
         sys.stdout.flush()

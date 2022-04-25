@@ -5,8 +5,6 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from modules.encoders import LanguageEmbeddingLayer, CPC, MMILB, RNNEncoder, SubNet
 
-from transformers import BertModel, BertConfig
-
 class MMIM(nn.Module):
     def __init__(self, hp):
         """Construct MultiMoldal InfoMax model.
