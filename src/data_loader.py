@@ -14,9 +14,9 @@ from transformers import BertTokenizer, RobertaTokenizer, DebertaV2Tokenizer
 from mmsdk import mmdatasdk as md
 from create_dataset import MOSI, MOSEI, PAD, UNK
 
-bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
 roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-large")
-deberta_tokenizer = DebertaV2Tokenizer.from_pretrained("microsoft/deberta-v2-xlarge")
+deberta_tokenizer = DebertaV2Tokenizer.from_pretrained("microsoft/deberta-v3-large")
 
 class MSADataset(Dataset):
     def __init__(self, config):
@@ -39,11 +39,11 @@ class MSADataset(Dataset):
 
     @property
     def tva_dim(self):
-        if self.config.bert_model == 'bert':
+        if self.config.bert_model == "bert":
             t_dim = 768
-        elif self.config.bert_model == 'roberta':
+        elif self.config.bert_model == "roberta":
             t_dim = 1024
-        elif self.config.bert_model == 'deberta':
+        elif self.config.bert_model == "deberta":
             t_dim = 1536
 
         return t_dim, self.data[0][0][1].shape[1], self.data[0][0][2].shape[1]
@@ -72,11 +72,11 @@ def get_loader(hp, config, shuffle=True):
     config.data_len = len(dataset)
     config.tva_dim = dataset.tva_dim
     
-    if config.mode == 'train':
+    if config.mode == "train":
         hp.n_train = len(dataset)
-    elif config.mode == 'valid':
+    elif config.mode == "valid":
         hp.n_valid = len(dataset)
-    elif config.mode == 'test':
+    elif config.mode == "test":
         hp.n_test = len(dataset)
 
     def collate_fn(batch):
@@ -137,14 +137,14 @@ def get_loader(hp, config, shuffle=True):
         visual = pad_sequence([torch.FloatTensor(sample[0][1]) for sample in batch], target_len=vlens.max().item())
         acoustic = pad_sequence([torch.FloatTensor(sample[0][2]) for sample in batch],target_len=alens.max().item())
 
-        if config.bert_model == 'bert':
+        if config.bert_model == "bert":
             SENT_LEN = 50
             # Create bert indices using tokenizer
             bert_details = []
             for sample in batch:
                 text = " ".join(sample[0][3])
                 encoded_bert_sent = bert_tokenizer.encode_plus(
-                    text, max_length=SENT_LEN, add_special_tokens=True, truncation=True, padding='max_length')
+                    text, max_length=SENT_LEN, add_special_tokens=True, truncation=True, padding="max_length")
                 bert_details.append(encoded_bert_sent)
 
             # Bert things are batch_first
@@ -164,14 +164,14 @@ def get_loader(hp, config, shuffle=True):
             if "mosi" in str(config.data_dir).lower():
                 for sample in batch:
                     segment = sample[2]
-                    vid = '_'.join(segment.split('_')[:-1])
+                    vid = "_".join(segment.split("_")[:-1])
                     if vid in train_split:
-                        split = 'train'
+                        split = "train"
                     elif vid in dev_split:
-                        split = 'val'
+                        split = "val"
                     elif vid in test_split:
-                        split = 'test'
-                    file = open(os.path.join('/home/ICT2000/yin/emnlp/data/CMU-MOSI/text', split, segment+'.txt'), 'r')
+                        split = "test"
+                    file = open(os.path.join("/home/ICT2000/yin/emnlp/data/CMU-MOSI/text", split, segment+".txt"), "r")
                     sentence = file.readline()
                     text_list.append(sentence)
             else:
@@ -179,10 +179,10 @@ def get_loader(hp, config, shuffle=True):
                     sentence = " ".join(sample[0][3])
                     text_list.append(sentence)
 
-            if config.bert_model == 'roberta':
+            if config.bert_model == "roberta":
                 encoded_bert_sent = roberta_tokenizer(text_list, padding=True, truncation=True,
                                                 max_length=roberta_tokenizer.model_max_length, return_tensors="pt")
-            elif config.bert_model == 'deberta':
+            elif config.bert_model == "deberta":
                 encoded_bert_sent = deberta_tokenizer(text_list, padding=True, truncation=True,
                                             max_length=deberta_tokenizer.model_max_length, return_tensors="pt")
             # Bert things are batch_first

@@ -17,15 +17,15 @@ class LanguageEmbeddingLayer(nn.Module):
     def __init__(self, hp):
         super(LanguageEmbeddingLayer, self).__init__()
         self.hp = hp
-        if self.hp.bert_model == 'bert':
-            bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-            self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
-        elif self.hp.bert_model == 'roberta':
-            bertconfig = RobertaConfig.from_pretrained('roberta-large', output_hidden_states=True)
-            self.bertmodel = RobertaModel.from_pretrained('roberta-large', config=bertconfig)
-        else:
-            bertconfig = DebertaV2Config.from_pretrained('microsoft/deberta-v2-xlarge', output_hidden_states=True)
-            self.bertmodel = DebertaV2Model.from_pretrained('microsoft/deberta-v2-xlarge', config=bertconfig)
+        if self.hp.bert_model == "bert":
+            bertconfig = BertConfig.from_pretrained("bert-base-uncased", output_hidden_states=True)
+            self.bertmodel = BertModel.from_pretrained("bert-base-uncased", config=bertconfig)
+        elif self.hp.bert_model == "roberta":
+            bertconfig = RobertaConfig.from_pretrained("roberta-large", output_hidden_states=True)
+            self.bertmodel = RobertaModel.from_pretrained("roberta-large", config=bertconfig)
+        elif self.hp.bert_model == "deberta":
+            bertconfig = DebertaV2Config.from_pretrained("microsoft/deberta-v3-large", output_hidden_states=True)
+            self.bertmodel = DebertaV2Model.from_pretrained("microsoft/deberta-v3-large", config=bertconfig)
 
     def forward(self, sentences, bert_sent, bert_sent_type, bert_sent_mask):
         if self.hp.bert_model == 'bert':
