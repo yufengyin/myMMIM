@@ -72,8 +72,6 @@ def get_args():
     parser.add_argument('--bidirectional', action='store_true', help='Whether to use bidirectional rnn')
     parser.add_argument('--d_prjh', type=int, default=128,
                         help='hidden size in projection network')
-    parser.add_argument('--pretrain_emb', type=int, default=768,
-                        help='dimension of pretrained model output')
     parser.add_argument('--bert_model', type=str, default='bert')
     parser.add_argument('--fusion', type=str, default='none')
 
