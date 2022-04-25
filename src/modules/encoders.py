@@ -5,6 +5,8 @@ import time
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from transformers import BertModel, BertConfig
+from transformers import RobertaModel, RobertaConfig
+from transformers import DebertaV2Model, DebertaV2Config
 
 def add_noise(x, intens=1e-7):
     return x + torch.rand(x.size()) * intens
@@ -14,13 +16,25 @@ class LanguageEmbeddingLayer(nn.Module):
     """
     def __init__(self, hp):
         super(LanguageEmbeddingLayer, self).__init__()
-        bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
-        self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        self.hp = hp
+        if self.hp.bert_model == 'bert':
+            bertconfig = BertConfig.from_pretrained('bert-base-uncased', output_hidden_states=True)
+            self.bertmodel = BertModel.from_pretrained('bert-base-uncased', config=bertconfig)
+        elif self.hp.bert_model == 'roberta':
+            bertconfig = RobertaConfig.from_pretrained('roberta-large', output_hidden_states=True)
+            self.bertmodel = RobertaModel.from_pretrained('roberta-large', config=bertconfig)
+        else:
+            bertconfig = DebertaV2Config.from_pretrained('microsoft/deberta-v2-xlarge', output_hidden_states=True)
+            self.bertmodel = DebertaV2Model.from_pretrained('microsoft/deberta-v2-xlarge', config=bertconfig)
 
     def forward(self, sentences, bert_sent, bert_sent_type, bert_sent_mask):
-        bert_output = self.bertmodel(input_ids=bert_sent,
-                                attention_mask=bert_sent_mask,
-                                token_type_ids=bert_sent_type)
+        if self.hp.bert_model == 'bert':
+            bert_output = self.bertmodel(input_ids=bert_sent,
+                                         attention_mask=bert_sent_mask,
+                                         token_type_ids=bert_sent_type)
+        else:
+            bert_output = self.bertmodel(input_ids=bert_sent,
+                                         attention_mask=bert_sent_mask)
         bert_output = bert_output[0]
         return bert_output   # return head (sequence representation)
 
@@ -133,6 +147,7 @@ class MMILB(nn.Module):
             nn.Linear(x_size, y_size),
             self.mid_activation(),
             nn.Linear(y_size, y_size),
+            nn.Tanh()
         )
         self.entropy_prj = nn.Sequential(
             nn.Linear(y_size, y_size // 4),
@@ -188,7 +203,6 @@ class MMILB(nn.Module):
                 mu_neg = neg_all.mean(dim=0)
                 sigma_pos = torch.mean(torch.bmm((pos_all-mu_pos).unsqueeze(-1), (pos_all-mu_pos).unsqueeze(1)), dim=0)
                 sigma_neg = torch.mean(torch.bmm((neg_all-mu_neg).unsqueeze(-1), (neg_all-mu_neg).unsqueeze(1)), dim=0)
-                a = 17.0795
                 H = 0.25 * (torch.logdet(sigma_pos) + torch.logdet(sigma_neg))
 
         return lld, sample_dict, H
