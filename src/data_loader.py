@@ -1,3 +1,5 @@
+import os
+import re
 import random
 import numpy as np
 from tqdm import tqdm_notebook
@@ -7,11 +9,14 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader, Dataset
-from transformers import *
+from transformers import BertTokenizer, RobertaTokenizer, DebertaV2Tokenizer
 
+from mmsdk import mmdatasdk as md
 from create_dataset import MOSI, MOSEI, PAD, UNK
 
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
+roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-large")
+deberta_tokenizer = DebertaV2Tokenizer.from_pretrained("microsoft/deberta-v2-xlarge")
 
 class MSADataset(Dataset):
     def __init__(self, config):
@@ -34,7 +39,13 @@ class MSADataset(Dataset):
 
     @property
     def tva_dim(self):
-        t_dim = 768
+        if self.config.bert_model == 'bert':
+            t_dim = 768
+        elif self.config.bert_model == 'roberta':
+            t_dim = 1024
+        elif self.config.bert_model == 'deberta':
+            t_dim = 1536
+
         return t_dim, self.data[0][0][1].shape[1], self.data[0][0][2].shape[1]
 
     def __getitem__(self, index):
@@ -48,6 +59,14 @@ def get_loader(hp, config, shuffle=True):
     """Load DataLoader of given DialogDataset"""
 
     dataset = MSADataset(config)
+
+    if "mosi" in str(config.data_dir).lower():
+        DATASET = md.cmu_mosi
+    else:
+        DATASET = md.cmu_mosei
+    train_split = DATASET.standard_folds.standard_train_fold
+    dev_split = DATASET.standard_folds.standard_valid_fold
+    test_split = DATASET.standard_folds.standard_test_fold
     
     print(config.mode)
     config.data_len = len(dataset)
@@ -118,30 +137,65 @@ def get_loader(hp, config, shuffle=True):
         visual = pad_sequence([torch.FloatTensor(sample[0][1]) for sample in batch], target_len=vlens.max().item())
         acoustic = pad_sequence([torch.FloatTensor(sample[0][2]) for sample in batch],target_len=alens.max().item())
 
-        ## BERT-based features input prep
+        if config.bert_model == 'bert':
+            SENT_LEN = 50
+            # Create bert indices using tokenizer
+            bert_details = []
+            for sample in batch:
+                text = " ".join(sample[0][3])
+                encoded_bert_sent = bert_tokenizer.encode_plus(
+                    text, max_length=SENT_LEN, add_special_tokens=True, truncation=True, padding='max_length')
+                bert_details.append(encoded_bert_sent)
 
-        # SENT_LEN = min(sentences.size(0),50)
-        SENT_LEN = 50
-        # Create bert indices using tokenizer
+            # Bert things are batch_first
+            bert_sentences = torch.LongTensor([sample["input_ids"] for sample in bert_details])
+            bert_sentence_types = torch.LongTensor([sample["token_type_ids"] for sample in bert_details])
+            bert_sentence_att_mask = torch.LongTensor([sample["attention_mask"] for sample in bert_details])
 
-        bert_details = []
-        for sample in batch:
-            text = " ".join(sample[0][3])
-            encoded_bert_sent = bert_tokenizer.encode_plus(
-                text, max_length=SENT_LEN, add_special_tokens=True, truncation=True, padding='max_length')
-            bert_details.append(encoded_bert_sent)
+            # lengths are useful later in using RNNs
+            lengths = torch.LongTensor([len(sample[0][0]) for sample in batch])
+            if (vlens <= 0).sum() > 0:
+                vlens[np.where(vlens == 0)] = 1
 
-        # Bert things are batch_first
-        bert_sentences = torch.LongTensor([sample["input_ids"] for sample in bert_details])
-        bert_sentence_types = torch.LongTensor([sample["token_type_ids"] for sample in bert_details])
-        bert_sentence_att_mask = torch.LongTensor([sample["attention_mask"] for sample in bert_details])
+            return sentences, visual, vlens, acoustic, alens, labels, lengths, bert_sentences, bert_sentence_types, bert_sentence_att_mask, ids
+        else:
+            # get raw text
+            text_list = []
+            if "mosi" in str(config.data_dir).lower():
+                for sample in batch:
+                    segment = sample[2]
+                    vid = '_'.join(segment.split('_')[:-1])
+                    if vid in train_split:
+                        split = 'train'
+                    elif vid in dev_split:
+                        split = 'val'
+                    elif vid in test_split:
+                        split = 'test'
+                    file = open(os.path.join('/home/ICT2000/yin/emnlp/data/CMU-MOSI/text', split, segment+'.txt'), 'r')
+                    sentence = file.readline()
+                    text_list.append(sentence)
+            else:
+                for sample in batch:
+                    sentence = " ".join(sample[0][3])
+                    text_list.append(sentence)
 
-        # lengths are useful later in using RNNs
-        lengths = torch.LongTensor([len(sample[0][0]) for sample in batch])
-        if (vlens <= 0).sum() > 0:
-            vlens[np.where(vlens == 0)] = 1
+            if config.bert_model == 'roberta':
+                encoded_bert_sent = roberta_tokenizer(text_list, padding=True, truncation=True,
+                                                max_length=roberta_tokenizer.model_max_length, return_tensors="pt")
+            elif config.bert_model == 'deberta':
+                encoded_bert_sent = deberta_tokenizer(text_list, padding=True, truncation=True,
+                                            max_length=deberta_tokenizer.model_max_length, return_tensors="pt")
+            # Bert things are batch_first
+            bert_sentences = torch.cuda.LongTensor(encoded_bert_sent["input_ids"])
+            bert_sentence_att_mask = torch.cuda.LongTensor(encoded_bert_sent["attention_mask"])
 
-        return sentences, visual, vlens, acoustic, alens, labels, lengths, bert_sentences, bert_sentence_types, bert_sentence_att_mask, ids
+            # lengths are useful later in using RNNs
+            lengths = torch.LongTensor([len(sample[0][0]) for sample in batch])
+            if (vlens <= 0).sum() > 0:
+                vlens[np.where(vlens == 0)] = 1
+
+            return sentences, visual, vlens, acoustic, alens, labels, lengths, bert_sentences, None, bert_sentence_att_mask, ids
+
 
     data_loader = DataLoader(
         dataset=dataset,

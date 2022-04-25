@@ -19,7 +19,7 @@ sdk_dir = project_dir.joinpath('CMU-MultimodalSDK')
 data_dir = project_dir.joinpath('datasets')
 data_dict = {'mosi': data_dir.joinpath('MOSI'), 'mosei': data_dir.joinpath(
     'MOSEI'), 'ur_funny': data_dir.joinpath('UR_FUNNY')}
-optimizer_dict = {'RMSprop': optim.RMSprop, 'Adam': optim.Adam}
+optimizer_dict = {'RMSprop': optim.RMSprop, 'Adam': optim.Adam, 'AdamW': optim.AdamW}
 activation_dict = {'elu': nn.ELU, "hardshrink": nn.Hardshrink, "hardtanh": nn.Hardtanh,
                    "leakyrelu": nn.LeakyReLU, "prelu": nn.PReLU, "relu": nn.ReLU, "rrelu": nn.RReLU,
                    "tanh": nn.Tanh}
@@ -74,6 +74,8 @@ def get_args():
                         help='hidden size in projection network')
     parser.add_argument('--pretrain_emb', type=int, default=768,
                         help='dimension of pretrained model output')
+    parser.add_argument('--bert_model', type=str, default='bert')
+    parser.add_argument('--fusion', type=str, default='none')
 
 
     # Activations
@@ -105,7 +107,7 @@ def get_args():
     parser.add_argument('--weight_decay_club', type=float, default=1e-4,
                         help='L2 penalty factor of the main Adam optimizer')
         
-    parser.add_argument('--optim', type=str, default='Adam',
+    parser.add_argument('--optim', type=str, default='AdamW',
                         help='optimizer to use (default: Adam)')
     parser.add_argument('--num_epochs', type=int, default=40,
                         help='number of epochs (default: 40)')
@@ -121,7 +123,10 @@ def get_args():
                         help='frequency of result logging (default: 100)')
     parser.add_argument('--seed', type=int, default=1111,
                         help='random seed')
+    parser.add_argument('--model_name', type=str, default='model')
+
     args = parser.parse_args()
+
     return args
 
 
@@ -154,10 +159,11 @@ class Config(object):
         return config_str
 
 
-def get_config(dataset='mosi', mode='train', batch_size=32):
+def get_config(dataset='mosi', mode='train', batch_size=32, bert_model='bert'):
     config = Config(data=dataset, mode=mode)
     
     config.dataset = dataset
     config.batch_size = batch_size
+    config.bert_model = bert_model
 
     return config
