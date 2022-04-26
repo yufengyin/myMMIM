@@ -4,9 +4,7 @@ import time
 
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
-from transformers import BertModel, BertConfig
-from transformers import RobertaModel, RobertaConfig
-from transformers import DebertaV2Model, DebertaV2Config
+from transformers import AutoModel, AutoConfig
 
 def add_noise(x, intens=1e-7):
     return x + torch.rand(x.size()) * intens
@@ -18,14 +16,14 @@ class LanguageEmbeddingLayer(nn.Module):
         super(LanguageEmbeddingLayer, self).__init__()
         self.hp = hp
         if self.hp.bert_model == "bert":
-            bertconfig = BertConfig.from_pretrained("bert-base-uncased", output_hidden_states=True)
-            self.bertmodel = BertModel.from_pretrained("bert-base-uncased", config=bertconfig)
+            bertconfig = AutoConfig.from_pretrained("bert-base-uncased", output_hidden_states=True)
+            self.bertmodel = AutoModel.from_pretrained("bert-base-uncased", config=bertconfig)
         elif self.hp.bert_model == "roberta":
-            bertconfig = RobertaConfig.from_pretrained("roberta-large", output_hidden_states=True)
-            self.bertmodel = RobertaModel.from_pretrained("roberta-large", config=bertconfig)
+            bertconfig = AutoConfig.from_pretrained("roberta-large", output_hidden_states=True)
+            self.bertmodel = AutoModel.from_pretrained("roberta-large", config=bertconfig)
         elif self.hp.bert_model == "deberta":
-            bertconfig = DebertaV2Config.from_pretrained("microsoft/deberta-v3-large", output_hidden_states=True)
-            self.bertmodel = DebertaV2Model.from_pretrained("microsoft/deberta-v3-large", config=bertconfig)
+            bertconfig = AutoConfig.from_pretrained("microsoft/deberta-v3-large", output_hidden_states=True)
+            self.bertmodel = AutoModel.from_pretrained("microsoft/deberta-v3-large", config=bertconfig)
 
     def forward(self, sentences, bert_sent, bert_sent_type, bert_sent_mask):
         if self.hp.bert_model == 'bert':

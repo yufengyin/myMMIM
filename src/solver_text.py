@@ -18,9 +18,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from utils.eval_metrics import *
 from utils.tools import *
 
-from transformers import BertForSequenceClassification
-from transformers import RobertaForSequenceClassification
-from transformers import DebertaV2ForSequenceClassification
+from transformers import AutoModelForSequenceClassification
 
 class Solver_Text(object):
     def __init__(self, hyp_params, train_loader, dev_loader, test_loader, is_train=True):
@@ -30,11 +28,11 @@ class Solver_Text(object):
         self.test_loader = test_loader
 
         if self.hp.bert_model == 'bert':
-            self.model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=1)
+            self.model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=1)
         elif self.hp.bert_model == 'roberta':
-            self.model = RobertaForSequenceClassification.from_pretrained('roberta-large', num_labels=1)
+            self.model = AutoModelForSequenceClassification.from_pretrained("roberta-large", num_labels=1)
         elif self.hp.bert_model == 'deberta':
-            self.model = DebertaV2ForSequenceClassification.from_pretrained('microsoft/deberta-v2-xlarge', num_labels=1)
+            self.model = AutoModelForSequenceClassification.from_pretrained("microsoft/deberta-v3-large", num_labels=1)
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda")

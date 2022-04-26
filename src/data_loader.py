@@ -9,14 +9,14 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from torch.utils.data import DataLoader, Dataset
-from transformers import BertTokenizer, RobertaTokenizer, DebertaV2Tokenizer
+from transformers import AutoTokenizer
 
 from mmsdk import mmdatasdk as md
 from create_dataset import MOSI, MOSEI, PAD, UNK
 
-bert_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
-roberta_tokenizer = RobertaTokenizer.from_pretrained("roberta-large")
-deberta_tokenizer = DebertaV2Tokenizer.from_pretrained("microsoft/deberta-v3-large")
+bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
+roberta_tokenizer = AutoTokenizer.from_pretrained("roberta-large")
+deberta_tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-large")
 
 class MSADataset(Dataset):
     def __init__(self, config):
@@ -44,7 +44,7 @@ class MSADataset(Dataset):
         elif self.config.bert_model == "roberta":
             t_dim = 1024
         elif self.config.bert_model == "deberta":
-            t_dim = 1536
+            t_dim = 1024
 
         return t_dim, self.data[0][0][1].shape[1], self.data[0][0][2].shape[1]
 
@@ -194,7 +194,7 @@ def get_loader(hp, config, shuffle=True):
             if (vlens <= 0).sum() > 0:
                 vlens[np.where(vlens == 0)] = 1
 
-            return sentences, visual, vlens, acoustic, alens, labels, lengths, bert_sentences, None, bert_sentence_att_mask, ids
+            return sentences, visual, vlens, acoustic, alens, labels, lengths, bert_sentences, bert_sentences, bert_sentence_att_mask, ids
 
 
     data_loader = DataLoader(

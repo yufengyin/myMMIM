@@ -52,16 +52,13 @@ if __name__ == '__main__':
     args.n_class = output_dim_dict.get(dataset, 1)
     args.criterion = criterion_dict.get(dataset, 'MSELoss')
 
-    if args.fusion == 'none':
-        # MMIM
+    if args.fusion == 'none': # MMIM
         solver = Solver(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
-    elif args.fusion == 'text':
-        # bert
+    elif args.fusion == 'text': # bert
         solver = Solver_Text(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
-    elif args.fusion == 'early' or args.fusion == 'late':
-        # early fusion or late fusion
+    elif args.fusion == 'early' or args.fusion == 'late': # early or late fusion
         solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
     solver.train_and_eval()
