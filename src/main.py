@@ -61,4 +61,7 @@ if __name__ == '__main__':
     elif args.fusion == 'early' or args.fusion == 'late': # early or late fusion
         solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
+    elif args.fusion == 'audio' or args.fusion == 'video': # audio or video uni-modal
+        solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
+                    test_loader=test_loader, is_train=True)
     solver.train_and_eval()

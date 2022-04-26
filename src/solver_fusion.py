@@ -17,7 +17,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from utils.eval_metrics import *
 from utils.tools import *
-from model_fusion import MSA_EF, MSA_LF
+from model_fusion import MSA_EF, MSA_LF, USA_A, USA_V
 
 class Solver_Fusion(object):
     def __init__(self, hyp_params, train_loader, dev_loader, test_loader, is_train=True):
@@ -33,6 +33,10 @@ class Solver_Fusion(object):
             self.model = model = MSA_EF(hp)
         elif self.hp.fusion == 'late':
             self.model = model = MSA_LF(hp)
+        elif self.hp.fusion == 'audio':
+            self.model = model = USA_A(hp)
+        elif self.hp.fusion == 'video':
+            self.model = model = USA_V(hp)
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda")

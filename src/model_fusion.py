@@ -117,3 +117,57 @@ class MSA_LF(nn.Module):
         _, preds_a = self.acoustic_clf(acoustic)
 
         return (preds_t+preds_v+preds_a)/3
+
+class USA_A(nn.Module):
+    def __init__(self, hp):
+        # Base Encoders
+        super().__init__()
+        self.hp = hp
+
+        self.acoustic_enc = RNNEncoder(
+            in_size = hp.d_ain,
+            hidden_size = hp.d_ah,
+            out_size = hp.d_aout,
+            num_layers = hp.n_layer,
+            dropout = hp.dropout_a if hp.n_layer > 1 else 0.0,
+            bidirectional = hp.bidirectional
+        )
+        self.acoustic_clf = SubNet(
+            in_size = hp.d_aout,
+            hidden_size = hp.d_prjh,
+            n_class = hp.n_class,
+            dropout = hp.dropout_prj
+        )
+
+    def forward(self, sentences, visual, acoustic, v_len, a_len, bert_sent, bert_sent_type, bert_sent_mask):
+        acoustic = self.acoustic_enc(acoustic, a_len)
+        _, preds_a = self.acoustic_clf(acoustic)
+
+        return preds_a
+
+class USA_V(nn.Module):
+    def __init__(self, hp):
+        # Base Encoders
+        super().__init__()
+        self.hp = hp
+
+        self.visual_enc = RNNEncoder(
+            in_size = hp.d_vin,
+            hidden_size = hp.d_vh,
+            out_size = hp.d_vout,
+            num_layers = hp.n_layer,
+            dropout = hp.dropout_v if hp.n_layer > 1 else 0.0,
+            bidirectional = hp.bidirectional
+        )
+        self.visual_clf = SubNet(
+            in_size = hp.d_vout,
+            hidden_size = hp.d_prjh,
+            n_class = hp.n_class,
+            dropout = hp.dropout_prj
+        )
+
+    def forward(self, sentences, visual, acoustic, v_len, a_len, bert_sent, bert_sent_type, bert_sent_mask):
+        visual = self.visual_enc(visual, v_len)
+        _, preds_v = self.visual_clf(visual)
+
+        return preds_v
