@@ -334,6 +334,10 @@ class Solver(object):
                     lengths = lengths.cuda()
                     bert_sent, bert_sent_type, bert_sent_mask = bert_sent.cuda(), bert_sent_type.cuda(), bert_sent_mask.cuda()
 
+                if self.hp.test:
+                    vision = torch.randn(vision.shape[0], vision.shape[1], vision.shape[2]).cuda()
+                    audio = torch.randn(audio.shape[0], audio.shape[1], audio.shape[2]).cuda()
+
                 _, _, preds, _, _ = model(text, vision, audio, vlens, alens, bert_sent, bert_sent_type, bert_sent_mask)
 
                 results.append(preds)

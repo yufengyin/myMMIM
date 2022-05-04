@@ -28,7 +28,6 @@ if __name__ == '__main__':
     set_seed(args.seed)
     print("Start loading the data....")
     if args.test:
-        args.dataset = 'mosi'
         args.num_epochs = 0
 
     train_config = get_config(dataset, mode='train', batch_size=args.batch_size, bert_model=args.bert_model)

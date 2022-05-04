@@ -54,7 +54,7 @@ class MOSI:
             # create folders for storing the data
             if not os.path.exists(DATA_PATH):
                 check_call(' '.join(['mkdir', '-p', DATA_PATH]), shell=True)
-            
+
             # load pickle file for unaligned acoustic and visual source
             pickle_filename = '../datasets/MOSI/mosi_data_noalign.pkl'
             csv_filename = '../datasets/MOSI/MOSI-label.csv'

@@ -80,9 +80,9 @@ def get_loader(hp, config, shuffle=True):
         hp.n_test = len(dataset)
 
     def collate_fn(batch):
-        '''
+        """
         Collate functions assume batch = [Dataset[i] for i in index_set]
-        '''
+        """
         # for later use we sort the batch in descending order of length
         batch = sorted(batch, key=lambda x: len(x[0][3]), reverse=True)
 
