@@ -27,6 +27,10 @@ if __name__ == '__main__':
 
     set_seed(args.seed)
     print("Start loading the data....")
+    if args.test:
+        args.dataset = 'mosi'
+        args.num_epochs = 0
+
     train_config = get_config(dataset, mode='train', batch_size=args.batch_size, bert_model=args.bert_model)
     valid_config = get_config(dataset, mode='valid', batch_size=args.batch_size, bert_model=args.bert_model)
     test_config = get_config(dataset, mode='test',  batch_size=args.batch_size, bert_model=args.bert_model)
@@ -64,4 +68,7 @@ if __name__ == '__main__':
     elif args.fusion == 'audio' or args.fusion == 'video': # audio or video uni-modal
         solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
-    solver.train_and_eval()
+    if not args.test:
+        solver.train_and_eval()
+    else:
+        solver.test()

@@ -317,3 +317,29 @@ class Solver(object):
             self.best_dict = eval_mosi(best_results, best_truths, True)
 
         sys.stdout.flush()
+
+    def test(self):
+        model = self.model
+        model = load_model(self.hp, model)
+        model.eval()
+        loader = self.test_loader
+        results = []
+        truths = []
+        with torch.no_grad():
+            for batch in loader:
+                text, vision, vlens, audio, alens, y, lengths, bert_sent, bert_sent_type, bert_sent_mask, ids = batch
+
+                with torch.cuda.device(0):
+                    text, audio, vision, y = text.cuda(), audio.cuda(), vision.cuda(), y.cuda()
+                    lengths = lengths.cuda()
+                    bert_sent, bert_sent_type, bert_sent_mask = bert_sent.cuda(), bert_sent_type.cuda(), bert_sent_mask.cuda()
+
+                _, _, preds, _, _ = model(text, vision, audio, vlens, alens, bert_sent, bert_sent_type, bert_sent_mask)
+
+                results.append(preds)
+                truths.append(y)
+
+        results = torch.cat(results)
+        truths = torch.cat(truths)
+
+        eval_mosei_senti(results, truths, True)

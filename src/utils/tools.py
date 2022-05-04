@@ -13,19 +13,14 @@ def save_load_name(args, name=''):
 
 
 def save_model(args, model):
-    # name = save_load_name(args, name)
-    name = 'best_model'
     if not os.path.exists('pre_trained_models'):
         os.mkdir('pre_trained_models')
     torch.save(model.state_dict(), f'pre_trained_models/{args.model_name}.pt')
 
 
-def load_model(args, name=''):
-    # name = save_load_name(args, name)
-    name = 'best_model'
-    with open(f'pre_trained_models/{name}.pt', 'rb') as f:
-        buffer = io.BytesIO(f.read())
-    model = torch.load(buffer)
+def load_model(args, model):
+    model.load_state_dict(torch.load(f'pre_trained_models/{args.model_name}.pt'))
+
     return model
 
 

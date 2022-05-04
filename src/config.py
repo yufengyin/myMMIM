@@ -44,6 +44,7 @@ def get_args():
                         help='dataset to use (default: mosei)')
     parser.add_argument('--data_path', type=str, default='datasets',
                         help='path for storing the dataset')
+    parser.add_argument('--test', action='store_true', help='OOD evaluation')
 
     # Dropouts
     parser.add_argument('--dropout_a', type=float, default=0.1,
