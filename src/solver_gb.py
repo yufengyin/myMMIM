@@ -90,6 +90,7 @@ class Solver_GB(object):
         return optimizer_main, scheduler_main
 
     def gb_train(self, model, optimizer, idx):
+        model.train()
         #ltN, _, _ = self.evaluate(model, self.criterion, loader=self.tt_loader, index=idx)
         #ltN, _, _ = self.evaluate(model, self.criterion, loader=self.tv_loader, index=idx)
         for epoch in range(self.hp.num_gb_epochs):
@@ -128,10 +129,10 @@ class Solver_GB(object):
         print("At gb_estimate multimodal ")
         tri_model = copy.deepcopy(model).cuda()
         tri_optim, _ = self.get_optim(tri_model)
-        w = gb_train(uni_model, uni_optim, 3)
+        w = self.gb_train(uni_model, uni_optim, 3)
         weights.append(w)
 
-        return weights/sum(weights)
+        return weights/np.sum(np.array(weights))
 
     def train(self, model, optimizer, criterion, weights, idx=-1):
         epoch_loss = 0

@@ -110,8 +110,8 @@ def get_args():
                         help='optimizer to use (default: Adam)')
     parser.add_argument('--num_epochs', type=int, default=40,
                         help='number of epochs (default: 40)')
-    parser.add_argument('--num_gb_epochs', type=int, default=10,
-                        help='number of gradient blending epochs (default: 10)')
+    parser.add_argument('--num_gb_epochs', type=int, default=20,
+                        help='number of gradient blending epochs (default: 20)')
     parser.add_argument('--when', type=int, default=20,
                         help='when to decay learning rate (default: 20)')
     parser.add_argument('--patience', type=int, default=10,
