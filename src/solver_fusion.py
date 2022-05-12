@@ -99,6 +99,7 @@ class Solver_Fusion(object):
             start_time = time.time()
 
             for i_batch, batch_data in enumerate(self.train_loader):
+                model.zero_grad()
                 text, visual, vlens, audio, alens, y, l, bert_sent, bert_sent_type, bert_sent_mask, ids = batch_data
 
                 text, visual, audio, y, l, bert_sent, bert_sent_type, bert_sent_mask = \

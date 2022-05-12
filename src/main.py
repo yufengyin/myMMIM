@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from solver import Solver
 from solver_text import Solver_Text
 from solver_fusion import Solver_Fusion
+from solver_gb import Solver_GB
 from config import get_args, get_config, output_dim_dict, criterion_dict
 from data_loader import get_loader
 
@@ -66,6 +67,9 @@ if __name__ == '__main__':
                     test_loader=test_loader, is_train=True)
     elif args.fusion == 'audio' or args.fusion == 'video': # audio or video uni-modal
         solver = Solver_Fusion(args, train_loader=train_loader, dev_loader=valid_loader,
+                    test_loader=test_loader, is_train=True)
+    elif args.fusion == 'gb': # gradient blending
+        solver = Solver_GB(args, train_loader=train_loader, dev_loader=valid_loader,
                     test_loader=test_loader, is_train=True)
     if not args.test:
         solver.train_and_eval()
