@@ -19,6 +19,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from utils.eval_metrics import *
 from utils.tools import *
 from model_gb import MSA_GB
+
 class Solver_GB(object):
     def __init__(self, hyp_params, train_loader, dev_loader, test_loader, is_train=True):
         self.hp = hp = hyp_params
@@ -35,9 +36,15 @@ class Solver_GB(object):
         tt_data = Subset(train_datas, t_inds)
         tv_data = Subset(train_datas, v_inds)
         self.tt_loader = DataLoader(
-            tt_data, shuffle=True, num_workers=8, batch_size=train_loader.batch_size)
+            dataset=tt_data,
+            shuffle=True,
+            batch_size=train_loader.batch_size,
+            collate_fn=train_loader.collate_fn)
         self.tv_loader = DataLoader(
-            tv_data, shuffle=False, num_workers=8, batch_size=train_loader.batch_size)
+            dataset=tv_data,
+            shuffle=False,
+            batch_size=train_loader.batch_size,
+            collate_fn=train_loader.collate_fn)
 
         self.is_train = is_train
 
@@ -72,17 +79,17 @@ class Solver_GB(object):
                     nn.init.xavier_normal_(p)
 
         optimizer_main_group = [
-            {'params': bert_param, 'weight_decay': hp.weight_decay_bert, 'lr': hp.lr_bert},
-            {'params': main_param, 'weight_decay': hp.weight_decay_main, 'lr': hp.lr_main}
+            {'params': bert_param, 'weight_decay': self.hp.weight_decay_bert, 'lr': self.hp.lr_bert},
+            {'params': main_param, 'weight_decay': self.hp.weight_decay_main, 'lr': self.hp.lr_main}
         ]
         optimizer_main = getattr(torch.optim, self.hp.optim)(
             optimizer_main_group
         )
-        scheduler_main = ReduceLROnPlateau(optimizer_main, mode='min', patience=hp.when, factor=0.5, verbose=True)
+        scheduler_main = ReduceLROnPlateau(optimizer_main, mode='min', patience=self.hp.when, factor=0.5, verbose=True)
 
-        return optim, sched
+        return optimizer_main, scheduler_main
 
-    def gb_train(self, model, optim, idx):
+    def gb_train(self, model, optimizer, idx):
         #ltN, _, _ = self.evaluate(model, self.criterion, loader=self.tt_loader, index=idx)
         #ltN, _, _ = self.evaluate(model, self.criterion, loader=self.tv_loader, index=idx)
         for epoch in range(self.hp.num_gb_epochs):
@@ -95,7 +102,7 @@ class Solver_GB(object):
 
                 preds = model(text, visual, audio, vlens, alens, 
                             bert_sent, bert_sent_type, bert_sent_mask)
-                loss = criterion(preds[idx], y)
+                loss = self.criterion(preds[idx], y)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), self.hp.clip)
                 optimizer.step()
@@ -112,11 +119,13 @@ class Solver_GB(object):
     def gb_estimate(self, model):
         weights = []
         for modal_idx in range(3):
+            print("At gb_estimate unimodal "+str(modal_idx))
             uni_model = copy.deepcopy(model).cuda()
             uni_optim, _ = self.get_optim(uni_model)
-            w = gb_train(uni_model, uni_optim, modal_idx)
+            w = self.gb_train(uni_model, uni_optim, modal_idx)
             weights.append(w)
 
+        print("At gb_estimate multimodal ")
         tri_model = copy.deepcopy(model).cuda()
         tri_optim, _ = self.get_optim(tri_model)
         w = gb_train(uni_model, uni_optim, 3)
@@ -224,6 +233,7 @@ class Solver_GB(object):
         best_model = copy.deepcopy(model)
 
         weights = self.gb_estimate(model)
+        print("weights: " + str(weights))
         for epoch in range(1, self.hp.num_epochs+1):
             start = time.time()
 

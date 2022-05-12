@@ -83,8 +83,6 @@ class Solver_Text(object):
                 model.zero_grad()
                 text, visual, vlens, audio, alens, y, l, bert_sent, bert_sent_type, bert_sent_mask, ids = batch_data
 
-                model.zero_grad()
-
                 with torch.cuda.device(0):
                     text, visual, audio, y, l, bert_sent, bert_sent_type, bert_sent_mask = \
                     text.cuda(), visual.cuda(), audio.cuda(), y.cuda(), l.cuda(), bert_sent.cuda(), \
