@@ -257,6 +257,7 @@ class Solver_GB(object):
 
             if val_loss < best_valid:
                 # update best validation
+                patience = self.hp.patience
                 best_valid = val_loss
                 best_epoch = epoch
 
@@ -270,6 +271,10 @@ class Solver_GB(object):
                 best_model = copy.deepcopy(model)
                 print(f"Saved model at pre_trained_models")
                 save_model(self.hp, model)
+            else:
+                patience -= 1
+                if patience == 0:
+                    break
 
         print(f'Best epoch: {best_epoch}')
         if self.hp.dataset in ["mosei_senti", "mosei"]:
