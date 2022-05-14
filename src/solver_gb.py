@@ -173,14 +173,6 @@ class Solver_GB(object):
             proc_size += batch_size
             epoch_loss += loss.item() * batch_size
 
-            if i_batch % self.hp.log_interval == 0 and i_batch > 0:
-                avg_loss = proc_loss / proc_size
-                elapsed_time = time.time() - start_time
-                print('Epoch {:2d} | Batch {:3d}/{:3d} | Time/Batch(ms) {:5.2f} | Train Loss {:5.4f}'.
-                    format(epoch, i_batch, num_batches, elapsed_time * 1000 / self.hp.log_interval, avg_loss))
-                proc_loss, proc_size = 0, 0
-                start_time = time.time()
-
         return epoch_loss / self.hp.n_train
 
     def evaluate(self, model, criterion, loader=None, test=False, index=0):
